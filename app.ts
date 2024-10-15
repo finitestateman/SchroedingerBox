@@ -1,29 +1,44 @@
 type Alive<T> = (value: T) => void;
 type Dead = (reason: any) => void;
 
-class SchroedingersBox<T> extends Promise<T> {
-  constructor(experiment: (resolve: (value: T) => void, reject: (reason?: any) => void) => void) {
-    super(experiment);
+class SchroedingersBox<T> implements Promise<T> {
+  private promise: Promise<T>;
+
+  constructor(experiment: (resolve: (value: T | PromiseLike<T>) => void, reject: (reason?: any) => void) => void) {
+    this.promise = new Promise(experiment);
   }
+
+  then<TResult1 = T, TResult2 = never>(
+    ifAlive?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null | undefined,
+    ifDead?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null | undefined
+  ): Promise<TResult1 | TResult2> {
+    return this.promise.then(ifAlive, ifDead);
+  }
+
+  catch<TResult = never>(
+    ifDead?: ((reason: any) => TResult | PromiseLike<TResult>) | null | undefined
+  ): Promise<T | TResult> {
+    return this.promise.catch(ifDead);
+  }
+
+  [Symbol.toStringTag]: string = 'SchroedingersBox';
 
   public ifAlive<TResult1 = T, TResult2 = never>(
     ifAlive?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
     ifDead?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
   ): SchroedingersBox<TResult1 | TResult2> {
-    // Custom logic for onAlive
     console.log("Handling onAlive");
     return new SchroedingersBox<TResult1 | TResult2>((resolve, reject) => {
-      super.then(ifAlive, ifDead).then(resolve, reject);
+      this.promise.then(ifAlive, ifDead).then(resolve, reject);
     });
   }
 
   public ifDead<TResult = never>(
     ifDead?: ((reason: any) => TResult | PromiseLike<TResult>) | null
   ): SchroedingersBox<T | TResult> {
-    // Custom logic for onDead
     console.log("Handling onDead");
     return new SchroedingersBox<T | TResult>((resolve, reject) => {
-      super.catch(ifDead).then(resolve, reject);
+      this.promise.catch(ifDead).then(resolve, reject);
     });
   }
 }
@@ -35,9 +50,9 @@ const animalExperiment = (animalName: string, result: string): SchroedingersBox<
 
     setTimeout(() => {
       if (isAnimalAlive) {
-        resolve(result); // resolve 호출
+        resolve(result);
       } else {
-        reject(`${animalName}가 죽었습니다...`); // reject 호출
+        reject(`${animalName}가 죽었습니다...`);
       }
     }, 1000); // 1초 후에 상태 결정
   });
@@ -50,27 +65,27 @@ const leopardPromise = animalExperiment('표범', '표범이 살아있습니다!
 
 // 각 Promise 결과 처리
 lionPromise
-  .then(result => console.log(result))
-  .catch(error => console.error(error));
+  .ifAlive((result: string) => console.log(result))
+  .ifDead((error: any) => console.error(error));
 
 tigerPromise
-  .then(result => console.log(result))
-  .catch(error => console.error(error));
+  .ifAlive((result: string) => console.log(result))
+  .ifDead((error: any) => console.error(error));
 
 leopardPromise
-  .then(result => console.log(result))
-  .catch(error => console.error(error));
+  .ifAlive((result: string) => console.log(result))
+  .ifDead((error: any) => console.error(error));
 
 // 사용 예시
 const box = animalExperiment("고양이", "고양이가 살아있습니다.");
-box.ifAlive(result => console.log(result), error => console.log(error));
+box.ifAlive(result => console.log(result), (error: any) => console.log(error));
 box
   .ifAlive(result => console.log(result))
-  .ifDead(error => console.error(error));
+  .ifDead((error: any) => console.error(error));
 
 async function test() {
   try {
-    const dogBox = await animalExperiment("강아지", "강아지가 살아있습니다.");
+    const dogBox = await animalExperiment("강아지", "강아지가 살아습니다.");
     console.log(dogBox);
   } catch (error) {
     console.error(error); // Handle the rejection here
