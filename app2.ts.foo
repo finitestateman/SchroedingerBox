@@ -1,0 +1,53 @@
+type Alive<T> = (value: T) => void;
+type Dead = (reason: any) => void;
+
+class SchroedingersBox<T> extends Promise<T> {
+  constructor(experiment: (resolve: (value: T) => void, reject: (reason?: any) => void) => void) {
+    super(experiment);
+  }
+
+  public onAlive<TResult1 = T, TResult2 = never>(
+    onAlive?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
+    onDead?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): SchroedingersBox<TResult1 | TResult2> {
+    console.log("Handling onAlive");
+    return new SchroedingersBox<TResult1 | TResult2>((resolve, reject) => {
+      super.then(onAlive, onDead).then(resolve, reject);
+    });
+  }
+
+  public onDead<TResult = never>(
+    onDead?: ((reason: any) => TResult | PromiseLike<TResult>) | null
+  ): SchroedingersBox<T | TResult> {
+    console.log("Handling onDead");
+    return new SchroedingersBox<T | TResult>((resolve, reject) => {
+      super.catch(onDead).then(resolve, reject);
+    });
+  }
+}
+
+function animalExperiment<T>(animal: string, message: string): SchroedingersBox<T> {
+  return new SchroedingersBox<T>((resolve, reject) => {
+    setTimeout(() => {
+      if (Math.random() > 0.5) {
+        resolve(message as unknown as T);
+      } else {
+        reject(new Error(`${animal} is dead.`));
+      }
+    }, 1000);
+  });
+}
+
+// 사용 예시
+const box = animalExperiment<string>("고양이", "고양이가 살아있습니다.");
+box.onAlive(result => console.log(result)).onDead(error => console.log(error));
+
+async function test() {
+  try {
+    const result = await animalExperiment<string>("강아지", "강아지가 살아있습니다.");
+    console.log(result);
+  } catch (error) {
+    console.error(error);
+  }
+}
+test();

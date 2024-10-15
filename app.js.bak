@@ -1,0 +1,47 @@
+class SchroedingersPromise extends Promise {
+    constructor(openBox) {
+      // Promise의 executor 호출
+      super((alive, dead) => {
+        console.log('강아지를 상자에 넣었습니다.');
+  
+        // openBox는 alive와 dead를 받음 (resolve, reject 치환)
+        openBox(alive, dead);
+      });
+    }
+  
+    // resolve를 강아지가 살아있음으로 치환
+    static alive(value) {
+      return Promise.resolve(value);
+    }
+  
+    // reject를 강아지가 죽었음으로 치환
+    static dead(reason) {
+      return Promise.reject(reason);
+    }
+  }
+  
+  // 사용 예시
+  const dogExperiment = new SchroedingersPromise((alive, dead) => {
+    // 조건에 따라 alive나 dead 호출
+    const isDogAlive = Math.random() > 0.5; // 50% 확률로 강아지 상태 결정
+  
+    setTimeout(() => {
+      if (isDogAlive) {
+        alive('강아지가 살아있습니다!'); // alive 호출
+      } else {
+        dead('강아지가 죽었습니다...'); // dead 호출
+      }
+    }, 1000); // 1초 후에 상태 결정
+  });
+  
+  // 강아지 상태 결과 처리
+//   dogExperiment
+    // .then((result) => console.log(result))  // '강아지가 살아있습니다!' 출력
+    // .catch((error) => console.error(error)); // '강아지가 죽었습니다...' 출력
+
+    const callback = (foo, bar) => {
+
+    }
+    const exp = new SchroedingersPromise((foo, bar) => {
+
+    });
